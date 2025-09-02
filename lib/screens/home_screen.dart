@@ -4,8 +4,10 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:provider/provider.dart';
 import 'package:tanaw_app/screens/profile_screen.dart';
 import 'package:tanaw_app/screens/status_screen.dart';
+import 'package:tanaw_app/screens/login_screen.dart';
 import 'package:tanaw_app/state/guardian_mode_state.dart';
 import 'package:tanaw_app/state/tts_state.dart';
+import 'package:tanaw_app/state/auth_state.dart';
 import 'package:tanaw_app/widgets/animated_bottom_nav_bar.dart';
 import 'package:tanaw_app/widgets/app_logo.dart';
 import 'package:tanaw_app/widgets/fade_page_route.dart';
@@ -87,6 +89,23 @@ class HomeScreenState extends State<HomeScreen> {
             isGuardianMode:
                 Provider.of<GuardianModeState>(context).isGuardianModeEnabled,
           ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.logout, color: Color(0xFF163C63)),
+              onPressed: () async {
+                final authState = Provider.of<AuthState>(context, listen: false);
+                await authState.signOut();
+                if (mounted) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    (route) => false,
+                  );
+                }
+              },
+              tooltip: 'Sign Out',
+            ),
+          ],
         ),
         body: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),

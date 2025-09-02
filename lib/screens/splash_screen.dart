@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:tanaw_app/state/auth_state.dart';
 import 'package:tanaw_app/screens/onboarding_screen.dart';
+import 'package:tanaw_app/screens/home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -22,7 +25,7 @@ class SplashScreenState extends State<SplashScreen>
     super.initState();
 
     _controller = AnimationController(
-      duration: const Duration(seconds: 5),
+      duration: const Duration(seconds: 3),
       vsync: this,
     );
 
@@ -65,16 +68,42 @@ class SplashScreenState extends State<SplashScreen>
 
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            pageBuilder: (_, __, ___) => const OnboardingScreen(),
-            transitionsBuilder: (_, animation, __, child) {
-              return FadeTransition(opacity: animation, child: child);
-            },
-            transitionDuration: const Duration(milliseconds: 800),
-          ),
-        );
+        _checkAuthAndNavigate();
+      }
+    });
+  }
+
+  void _checkAuthAndNavigate() {
+    // Add a small delay to ensure Firebase is initialized
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        final authState = Provider.of<AuthState>(context, listen: false);
+        
+        if (authState.isAuthenticated) {
+          // User is already signed in, go to home
+          Navigator.pushReplacement(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (_, __, ___) => const HomeScreen(),
+              transitionsBuilder: (_, animation, __, child) {
+                return FadeTransition(opacity: animation, child: child);
+              },
+              transitionDuration: const Duration(milliseconds: 800),
+            ),
+          );
+        } else {
+          // User is not signed in, go to onboarding
+          Navigator.pushReplacement(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (_, __, ___) => const OnboardingScreen(),
+              transitionsBuilder: (_, animation, __, child) {
+                return FadeTransition(opacity: animation, child: child);
+              },
+              transitionDuration: const Duration(milliseconds: 800),
+            ),
+          );
+        }
       }
     });
   }

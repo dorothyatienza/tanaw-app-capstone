@@ -6,6 +6,7 @@ class ProfileState with ChangeNotifier {
   String _userEmail = "blind.dc@tanaw.com";
   String _userPhone = "+63 912 345 6789";
   String? _userImagePath;
+  String? _userImageUrl; // Prefer network image when provided (e.g., Google photo)
 
   // Guardian profile
   String _guardianName = "John Doe";
@@ -17,6 +18,7 @@ class ProfileState with ChangeNotifier {
   String get userEmail => _userEmail;
   String get userPhone => _userPhone;
   String? get userImagePath => _userImagePath;
+  String? get userImageUrl => _userImageUrl;
 
   String get guardianName => _guardianName;
   String get guardianEmail => _guardianEmail;
@@ -40,6 +42,11 @@ class ProfileState with ChangeNotifier {
 
   void updateUserImage(String imagePath) {
     _userImagePath = imagePath;
+    notifyListeners();
+  }
+
+  void updateUserImageUrl(String? imageUrl) {
+    _userImageUrl = imageUrl;
     notifyListeners();
   }
 

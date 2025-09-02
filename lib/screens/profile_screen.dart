@@ -373,9 +373,11 @@ class ProfileScreenState extends State<ProfileScreen> {
           _buildProfileHeader(
             profileState.userName,
             "Visually Impaired User",
-            profileState.userImagePath != null && !kIsWeb
-                ? FileImage(File(profileState.userImagePath!))
-                : const AssetImage('assets/TANAW-LOGO2.0.png'),
+            profileState.userImageUrl != null
+                ? NetworkImage(profileState.userImageUrl!)
+                : (profileState.userImagePath != null && !kIsWeb
+                    ? FileImage(File(profileState.userImagePath!))
+                    : const AssetImage('assets/TANAW-LOGO2.0.png')) as ImageProvider,
             isGuardianMode,
           ),
           const SizedBox(height: 24),

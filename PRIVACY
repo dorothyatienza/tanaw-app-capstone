@@ -1,0 +1,39 @@
+Privacy Policy for Tanaw App
+
+Tanaw App respects your privacy. This Privacy Policy explains how we collect, use, and protect information when you use our mobile application.
+
+Information We Collect
+
+Personal Information: Only basic account details such as name, email, and profile picture (when you sign in with Google).
+
+Non-Personal Information: App usage data and error logs to improve functionality.
+
+How We Use Information
+
+To provide app features such as login, navigation, and guardian monitoring.
+
+To improve user experience and maintain app security.
+
+Data Sharing
+
+We do not sell or share personal data with third parties.
+
+Data may only be shared if required by law or to ensure safety.
+
+Data Security
+
+We apply Firebase Authentication, Firestore rules, and secure configurations to protect your data.
+
+User Control
+
+You may delete your account anytime.
+
+Guardians and blind users have different access levels to ensure privacy.
+
+Updates
+
+This Privacy Policy may be updated as the app evolves. Users will be notified of changes.
+
+Contact Us
+If you have any questions about this Privacy Policy, you may contact us at:
+📧 tanaw@gmail.com

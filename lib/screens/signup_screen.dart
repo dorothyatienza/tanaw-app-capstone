@@ -5,9 +5,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:tanaw_app/state/profile_state.dart';
 import 'package:provider/provider.dart';
 import 'package:tanaw_app/state/auth_state.dart';
+import 'package:tanaw_app/widgets/google_consent_screen.dart';
 import 'login_screen.dart';
 import 'complete_profile_screen.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -272,43 +273,59 @@ class _SignupScreenState extends State<SignupScreen> {
                                   icon: FontAwesomeIcons.google,
                                   color: const Color(0xFFDB4437),
                                   onPressed: authState.isLoading ? null : () async {
-                                    final success = await authState.signInWithGoogle();
-                                    if (success && mounted) {
-                                      final user = FirebaseAuth.instance.currentUser;
-                                      if (user != null) {
-                                        final profileState = Provider.of<ProfileState>(context, listen: false);
-                                        if (user.displayName != null && user.displayName!.isNotEmpty) {
-                                          profileState.updateUserName(user.displayName!);
-                                        }
-                                        if (user.email != null && user.email!.isNotEmpty) {
-                                          profileState.updateUserEmail(user.email!);
-                                        }
-                                        if (user.photoURL != null && user.photoURL!.isNotEmpty) {
-                                          profileState.updateUserImageUrl(user.photoURL);
-                                        }
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(
-                                            behavior: SnackBarBehavior.floating,
-                                            backgroundColor: Colors.white,
-                                            content: Row(
-                                              children: [
-                                                const Icon(Icons.check_circle, color: Color(0xFF153A5B)),
-                                                const SizedBox(width: 12),
-                                                Expanded(
-                                                  child: Text(
-                                                    'Signed in as ${user.email ?? user.displayName ?? 'Google user'}',
-                                                    style: const TextStyle(color: Color(0xFF153A5B), fontWeight: FontWeight.w600),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        );
-                                      }
-                                      Navigator.pushReplacement(
+                                    // Step 1: Get Google user info
+                                    final googleUser = await authState.getGoogleUserForSignUp();
+                                    if (googleUser != null && mounted) {
+                                      // Step 2: Show consent screen
+                                      await Navigator.push<bool>(
                                         context,
                                         MaterialPageRoute(
-                                            builder: (context) => const LoginScreen()),
+                                          builder: (context) => GoogleConsentScreen(
+                                            googleUser: googleUser,
+                                            onContinue: () async {
+                                              // Step 3: Complete sign-up after consent
+                                              final signUpResult = await authState.completeGoogleSignUp(googleUser);
+                                              
+                                              // Check if the widget is still mounted before using context
+                                              if (!mounted) return;
+                                              
+                                              if (signUpResult != null) {
+                                                if (signUpResult['success'] == true) {
+                                                  // Show success message
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text('Account created successfully. Please log in.'),
+                                                      backgroundColor: Colors.green,
+                                                      duration: Duration(seconds: 3),
+                                                    ),
+                                                  );
+                                                  
+                                                  // Redirect to login screen
+                                                  Navigator.pushAndRemoveUntil(
+                                                    context,
+                                                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                                                    (route) => false,
+                                                  );
+                                                } else {
+                                                  // Show error message
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text(signUpResult['error'] ?? 'Failed to create account'),
+                                                      backgroundColor: Colors.red,
+                                                      duration: Duration(seconds: 3),
+                                                    ),
+                                                  );
+                                                  Navigator.pop(context, false);
+                                                }
+                                              } else {
+                                                Navigator.pop(context, false);
+                                              }
+                                            },
+                                            onCancel: () {
+                                              Navigator.pop(context, false);
+                                            },
+                                          ),
+                                        ),
                                       );
                                     }
                                   }),

@@ -8,7 +8,7 @@ import 'package:tanaw_app/state/auth_state.dart';
 import 'home_screen.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
-import 'complete_profile_screen.dart';
+
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

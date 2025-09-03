@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:tanaw_app/services/auth_service.dart';
 
 class AuthState extends ChangeNotifier {
@@ -60,6 +61,33 @@ class AuthState extends ChangeNotifier {
     } catch (e) {
       setLoading(false);
       return false;
+    }
+  }
+
+  Future<GoogleSignInAccount?> getGoogleUserForSignUp() async {
+    setLoading(true);
+    try {
+      final result = await _authService.getGoogleUserForSignUp();
+      setLoading(false);
+      return result;
+    } catch (e) {
+      setLoading(false);
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> completeGoogleSignUp(GoogleSignInAccount googleUser) async {
+    setLoading(true);
+    try {
+      final result = await _authService.completeGoogleSignUp(googleUser);
+      setLoading(false);
+      return result;
+    } catch (e) {
+      setLoading(false);
+      return {
+        'success': false,
+        'error': 'Failed to create account. Please try again.',
+      };
     }
   }
 

@@ -12,6 +12,7 @@ import 'package:tanaw_app/widgets/fade_page_route.dart';
 import 'package:tanaw_app/state/connection_state.dart' as app_connection;
 import 'package:intl/intl.dart';
 import 'package:tanaw_app/services/object_generator.dart';
+import 'package:tanaw_app/services/firebase_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -253,5 +254,26 @@ class HomeScreenState extends State<HomeScreen> {
       _lastDetectedObject = detectedType;
     });
     _speak('Detected: $detectedType');
+
+    // Build a serializable payload for Firestore
+    final IconData? iconData = detectedObject['icon'] is IconData
+        ? detectedObject['icon'] as IconData
+        : null;
+    final Map<String, dynamic> payload = <String, dynamic>{
+      'type': detectedObject['type'],
+      'message': detectedObject['message'],
+      'location': detectedObject['location'],
+      // Serialize icon to a portable representation
+      if (iconData != null) ...<String, dynamic>{
+        'iconCodePoint': iconData.codePoint,
+        'iconFontFamily': iconData.fontFamily,
+        'iconFontPackage': iconData.fontPackage,
+        'iconMatchTextDirection': iconData.matchTextDirection,
+      } else ...<String, dynamic>{'icon': detectedObject['icon']?.toString()},
+      'time': detectedObject['time'],
+      // Firestore timestamp for ordering is added in the service
+    };
+
+    FirebaseService.uploadDetection(payload);
   }
 }

@@ -10,6 +10,8 @@ import 'package:tanaw_app/widgets/animated_bottom_nav_bar.dart';
 import 'package:tanaw_app/widgets/app_logo.dart';
 import 'package:tanaw_app/widgets/fade_page_route.dart';
 import 'package:tanaw_app/state/connection_state.dart' as app_connection;
+import 'package:intl/intl.dart';
+import 'package:tanaw_app/services/object_generator.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,7 +22,7 @@ class HomeScreen extends StatefulWidget {
 
 class HomeScreenState extends State<HomeScreen> {
   final FlutterTts _flutterTts = FlutterTts();
-  final String _lastDetectedObject = "Garbage Bin";
+  String _lastDetectedObject = "Garbage Bin";
   final String _batteryLevel = "80%";
   int _selectedIndex = 1;
 
@@ -75,50 +77,66 @@ class HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final ttsState = Provider.of<TtsState>(context);
-    final connectionState = Provider.of<app_connection.ConnectionState>(context);
+    final connectionState = Provider.of<app_connection.ConnectionState>(
+      context,
+    );
 
     Widget screenContent = Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          backgroundColor: Colors.white,
-          elevation: 0,
-          title: AppLogo(
-            isGuardianMode:
-                Provider.of<GuardianModeState>(context).isGuardianModeEnabled,
-          ),
+        elevation: 0,
+        title: AppLogo(
+          isGuardianMode: Provider.of<GuardianModeState>(
+            context,
+          ).isGuardianModeEnabled,
         ),
-        body: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              _buildDeviceStatus(connectionState.isConnected),
-              const SizedBox(height: 24),
-              _buildDetectedObjectCard(),
-              const SizedBox(height: 32),
-              _buildActionButton(
-                icon: Icons.battery_charging_full,
-                text: 'Check Device\nBattery',
-                onPressed: () => _speak("Battery is at $_batteryLevel"),
-              ),
-              const SizedBox(height: 16),
-              _buildActionButton(
-                icon: connectionState.isConnected ? Icons.bluetooth : Icons.bluetooth_disabled,
-                text: connectionState.isConnected ? 'Disconnect\nGlasses' : 'Connect\nGlasses',
-                onPressed: () {
-                  _speak(connectionState.isConnected ? "Disconnecting glasses" : "Connecting glasses");
-                  connectionState.toggleConnection();
-                },
-              ),
-
-            ],
-          ),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            _buildDeviceStatus(connectionState.isConnected),
+            const SizedBox(height: 24),
+            _buildDetectedObjectCard(),
+            const SizedBox(height: 32),
+            _buildActionButton(
+              icon: Icons.qr_code_scanner,
+              text: 'SCAN',
+              onPressed: _onScanPressed,
+            ),
+            const SizedBox(height: 16),
+            _buildActionButton(
+              icon: Icons.battery_charging_full,
+              text: 'Check Device\nBattery',
+              onPressed: () => _speak("Battery is at $_batteryLevel"),
+            ),
+            const SizedBox(height: 16),
+            _buildActionButton(
+              icon: connectionState.isConnected
+                  ? Icons.bluetooth
+                  : Icons.bluetooth_disabled,
+              text: connectionState.isConnected
+                  ? 'Disconnect\nGlasses'
+                  : 'Connect\nGlasses',
+              onPressed: () {
+                _speak(
+                  connectionState.isConnected
+                      ? "Disconnecting glasses"
+                      : "Connecting glasses",
+                );
+                connectionState.toggleConnection();
+              },
+            ),
+          ],
         ),
-        bottomNavigationBar: AnimatedBottomNavBar(
-          selectedIndex: _selectedIndex,
-          onItemTapped: _onItemTapped,
-        ),
+      ),
+      bottomNavigationBar: AnimatedBottomNavBar(
+        selectedIndex: _selectedIndex,
+        onItemTapped: _onItemTapped,
+      ),
     );
 
     if (ttsState.isTtsEnabled) {
@@ -133,7 +151,9 @@ class HomeScreenState extends State<HomeScreen> {
 
   Widget _buildDeviceStatus(bool isConnected) {
     final statusText = isConnected ? 'Connected' : 'Disconnected';
-    final statusColor = isConnected ? Colors.green.shade700 : Colors.red.shade700;
+    final statusColor = isConnected
+        ? Colors.green.shade700
+        : Colors.red.shade700;
     final statusIcon = isConnected ? Icons.check_circle : Icons.cancel;
 
     return Row(
@@ -141,10 +161,7 @@ class HomeScreenState extends State<HomeScreen> {
       children: [
         Text(
           'Device Status: ',
-          style: TextStyle(
-            color: Colors.grey.shade700,
-            fontSize: 18,
-          ),
+          style: TextStyle(color: Colors.grey.shade700, fontSize: 18),
         ),
         Text(
           statusText,
@@ -170,9 +187,9 @@ class HomeScreenState extends State<HomeScreen> {
       ),
       child: Column(
         children: [
-          const Text(
-            'Detected:',
-            style: TextStyle(fontSize: 20, color: Color(0xFF163C63)),
+          Text(
+            'Detected: $_lastDetectedObject',
+            style: const TextStyle(fontSize: 20, color: Color(0xFF163C63)),
           ),
           const SizedBox(height: 8),
           Text(
@@ -185,30 +202,26 @@ class HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 24),
           GestureDetector(
-            onTap: () => _speak("Last detected object was $_lastDetectedObject"),
-            child: Icon(
-              Icons.volume_up,
-              size: 50,
-              color: Colors.grey.shade700,
-            ),
+            onTap: () =>
+                _speak("Last detected object was $_lastDetectedObject"),
+            child: Icon(Icons.volume_up, size: 50, color: Colors.grey.shade700),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildActionButton(
-      {required IconData icon,
-      required String text,
-      required VoidCallback onPressed}) {
+  Widget _buildActionButton({
+    required IconData icon,
+    required String text,
+    required VoidCallback onPressed,
+  }) {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFF163C63),
         minimumSize: const Size(double.infinity, 96),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       ),
       child: Row(
@@ -229,5 +242,16 @@ class HomeScreenState extends State<HomeScreen> {
         ],
       ),
     );
+  }
+
+  void _onScanPressed() {
+    final Map<String, dynamic> detectedObject = pickRandomObject();
+    detectedObject['time'] = DateFormat('hh:mm a').format(DateTime.now());
+    final String detectedType =
+        detectedObject['type']?.toString() ?? _lastDetectedObject;
+    setState(() {
+      _lastDetectedObject = detectedType;
+    });
+    _speak('Detected: $detectedType');
   }
 }

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "461534574635",
+    "project_id": "tanaw-sqa",
+    "storage_bucket": "tanaw-sqa.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:461534574635:android:ab5bd6432a580d060cd26e",
+        "android_client_info": {
+          "package_name": "com.example.tanaw_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyANSz8AC_1AXOBVeeCkZTpabxdthCEBuo0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

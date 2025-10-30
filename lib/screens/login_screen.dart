@@ -211,7 +211,34 @@ class _LoginScreenState extends State<LoginScreen> {
                         _buildSocialButton(
                           icon: FontAwesomeIcons.google,
                           color: const Color(0xFFDB4437),
-                          onPressed: () {},
+                          onPressed: () async {
+                            HapticFeedback.lightImpact();
+                            setState(() {
+                              isLoading = true;
+                            });
+                            try {
+                              await AuthService().signInWithGoogle();
+                              if (!mounted) return;
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const HomeScreen(),
+                                ),
+                              );
+                            } catch (e) {
+                              if (!mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Google Sign-In failed: ${e.toString().contains('canceled') ? 'Sign-in was canceled' : e.toString()}',
+                                  ),
+                                ),
+                              );
+                            }
+                            setState(() {
+                              isLoading = false;
+                            });
+                          },
                         ),
                       ],
                     ),

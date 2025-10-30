@@ -12,7 +12,20 @@
           "package_name": "com.example.tanaw_app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "461534574635-cd5qddkh8ivil20mgcd1ge2o930ub7qe.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.tanaw_app",
+            "certificate_hash": "8d7c682952c1fb1579d39982bf46fb44f05a4caf"
+          }
+        },
+        {
+          "client_id": "461534574635-67v3ebt4joeqcpsfbj20spqo1k71abl4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyANSz8AC_1AXOBVeeCkZTpabxdthCEBuo0"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "461534574635-67v3ebt4joeqcpsfbj20spqo1k71abl4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

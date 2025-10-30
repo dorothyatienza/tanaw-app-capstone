@@ -1,12 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:tanaw_app/services/auth_service.dart';
 import 'home_screen.dart';
 import 'signup_screen.dart';
 import 'forgot_password_screen.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+  bool isLoading = false;
+
+  @override
+  void dispose() {
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -76,23 +93,56 @@ class LoginScreen extends StatelessWidget {
                     _buildTextField(
                       label: 'Email Address',
                       icon: Icons.email_outlined,
+                      controller: emailController,
                     ),
                     const SizedBox(height: 20),
                     _buildTextField(
                       label: 'Password',
                       icon: Icons.lock_outline,
                       obscureText: true,
+                      controller: passwordController,
                     ),
                     const SizedBox(height: 30),
                     ElevatedButton(
-                      onPressed: () {
-                        HapticFeedback.lightImpact();
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const HomeScreen()),
-                        );
-                      },
+                      onPressed: isLoading
+                          ? null
+                          : () async {
+                              HapticFeedback.lightImpact();
+                              final email = emailController.text.trim();
+                              final password = passwordController.text;
+                              if (email.isEmpty || password.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Please enter both email and password.',
+                                    ),
+                                  ),
+                                );
+                                return;
+                              }
+                              setState(() {
+                                isLoading = true;
+                              });
+                              try {
+                                await AuthService().signIn(email, password);
+                                if (!mounted) return;
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const HomeScreen(),
+                                  ),
+                                );
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Invalid email or password.'),
+                                  ),
+                                );
+                              }
+                              setState(() {
+                                isLoading = false;
+                              });
+                            },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF153A5B),
                         minimumSize: const Size.fromHeight(55),
@@ -101,14 +151,23 @@ class LoginScreen extends StatelessWidget {
                         ),
                         elevation: 5,
                       ),
-                      child: const Text(
-                        'Login',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child: isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              'Login',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                     ),
                     const SizedBox(height: 8),
                     TextButton(
@@ -134,9 +193,13 @@ class LoginScreen extends StatelessWidget {
                         const Expanded(child: Divider(color: Colors.grey)),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: Text('or connect with',
-                              style: TextStyle(
-                                  color: Colors.grey.shade600, fontSize: 14)),
+                          child: Text(
+                            'or connect with',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 14,
+                            ),
+                          ),
                         ),
                         const Expanded(child: Divider(color: Colors.grey)),
                       ],
@@ -146,19 +209,10 @@ class LoginScreen extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         _buildSocialButton(
-                            icon: FontAwesomeIcons.google,
-                            color: const Color(0xFFDB4437),
-                            onPressed: () {}),
-                        const SizedBox(width: 20),
-                        _buildSocialButton(
-                            icon: FontAwesomeIcons.apple,
-                            color: Colors.black,
-                            onPressed: () {}),
-                        const SizedBox(width: 20),
-                        _buildSocialButton(
-                            icon: FontAwesomeIcons.facebook,
-                            color: const Color(0xFF4267B2),
-                            onPressed: () {}),
+                          icon: FontAwesomeIcons.google,
+                          color: const Color(0xFFDB4437),
+                          onPressed: () {},
+                        ),
                       ],
                     ),
                     const SizedBox(height: 40),
@@ -167,7 +221,8 @@ class LoginScreen extends StatelessWidget {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (context) => const SignupScreen()),
+                            builder: (context) => const SignupScreen(),
+                          ),
                         );
                       },
                       child: RichText(
@@ -175,7 +230,9 @@ class LoginScreen extends StatelessWidget {
                         text: TextSpan(
                           text: "Don't have an account? ",
                           style: TextStyle(
-                              color: Colors.grey.shade600, fontSize: 15),
+                            color: Colors.grey.shade600,
+                            fontSize: 15,
+                          ),
                           children: const [
                             TextSpan(
                               text: 'Sign Up',
@@ -203,6 +260,7 @@ class LoginScreen extends StatelessWidget {
     required String label,
     required IconData icon,
     bool obscureText = false,
+    TextEditingController? controller,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,6 +275,7 @@ class LoginScreen extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         TextField(
+          controller: controller,
           obscureText: obscureText,
           decoration: InputDecoration(
             prefixIcon: Icon(icon, color: const Color(0xFF153A5B)),
@@ -226,33 +285,37 @@ class LoginScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide.none,
             ),
-            contentPadding:
-                const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 16,
+              horizontal: 20,
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildSocialButton(
-      {required IconData icon,
-      required Color color,
-      required VoidCallback onPressed}) {
+  Widget _buildSocialButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
     return InkWell(
       onTap: onPressed,
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(12),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              )
-            ]),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(12),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
         child: FaIcon(icon, color: color, size: 24),
       ),
     );

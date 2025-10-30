@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:tanaw_app/services/auth_service.dart';
 import 'login_screen.dart';
 import 'account_created_screen.dart';
 
@@ -107,13 +108,48 @@ class _SignupScreenState extends State<SignupScreen> {
                         ),
                         const SizedBox(height: 30),
                         ElevatedButton(
-                          onPressed: () {
+                          onPressed: () async {
                             HapticFeedback.lightImpact();
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => const AccountCreatedScreen()),
-                            );
+                            final email = emailController.text.trim();
+                            final password = passwordController.text;
+                            final confirmPassword =
+                                confirmPasswordController.text;
+                            if (email.isEmpty ||
+                                password.isEmpty ||
+                                confirmPassword.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Please fill in all fields'),
+                                ),
+                              );
+                              return;
+                            }
+                            if (password != confirmPassword) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Passwords do not match'),
+                                ),
+                              );
+                              return;
+                            }
+                            try {
+                              await AuthService().signUp(email, password);
+                              if (!mounted) return;
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AccountCreatedScreen(),
+                                ),
+                              );
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Sign up failed:  ${e.toString()}',
+                                  ),
+                                ),
+                              );
+                            }
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF153A5B),
@@ -136,12 +172,16 @@ class _SignupScreenState extends State<SignupScreen> {
                           children: [
                             const Expanded(child: Divider()),
                             Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(horizontal: 16.0),
-                              child: Text('or connect with',
-                                  style: TextStyle(
-                                      color: Colors.grey.shade600,
-                                      fontSize: 14)),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16.0,
+                              ),
+                              child: Text(
+                                'or connect with',
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 14,
+                                ),
+                              ),
                             ),
                             const Expanded(child: Divider()),
                           ],
@@ -151,19 +191,10 @@ class _SignupScreenState extends State<SignupScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             _buildSocialButton(
-                                icon: FontAwesomeIcons.google,
-                                color: const Color(0xFFDB4437),
-                                onPressed: () {}),
-                            const SizedBox(width: 20),
-                            _buildSocialButton(
-                                icon: FontAwesomeIcons.apple,
-                                color: Colors.black,
-                                onPressed: () {}),
-                            const SizedBox(width: 20),
-                            _buildSocialButton(
-                                icon: FontAwesomeIcons.facebook,
-                                color: const Color(0xFF4267B2),
-                                onPressed: () {}),
+                              icon: FontAwesomeIcons.google,
+                              color: const Color(0xFFDB4437),
+                              onPressed: () {},
+                            ),
                           ],
                         ),
                         const Spacer(),
@@ -172,7 +203,8 @@ class _SignupScreenState extends State<SignupScreen> {
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
-                                  builder: (context) => const LoginScreen()),
+                                builder: (context) => const LoginScreen(),
+                              ),
                             );
                           },
                           child: RichText(
@@ -180,7 +212,9 @@ class _SignupScreenState extends State<SignupScreen> {
                             text: TextSpan(
                               text: 'Already have an account? ',
                               style: TextStyle(
-                                  color: Colors.grey.shade700, fontSize: 15),
+                                color: Colors.grey.shade700,
+                                fontSize: 15,
+                              ),
                               children: const [
                                 TextSpan(
                                   text: 'Sign In',
@@ -235,27 +269,31 @@ class _SignupScreenState extends State<SignupScreen> {
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
             ),
-            contentPadding:
-                const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 16,
+              horizontal: 20,
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildSocialButton(
-      {required IconData icon,
-      required Color color,
-      required VoidCallback onPressed}) {
+  Widget _buildSocialButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
     return InkWell(
       onTap: onPressed,
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey.shade200)),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
         child: FaIcon(icon, color: color, size: 24),
       ),
     );

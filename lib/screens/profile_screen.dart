@@ -19,6 +19,7 @@ import 'terms_privacy_screen.dart';
 import 'package:tanaw_app/widgets/fade_page_route.dart';
 import 'package:tanaw_app/screens/status_screen.dart';
 import 'package:tanaw_app/services/tts_service.dart';
+import 'package:tanaw_app/services/auth_service.dart';
 import 'package:tanaw_app/state/profile_state.dart';
 import 'edit_profile_screen.dart';
 
@@ -100,9 +101,12 @@ class ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const SizedBox(width: 12),
                         ElevatedButton(
-                          onPressed: () {
+                          onPressed: () async {
+                            // Sign out from Firebase
+                            await AuthService().signOut();
                             Provider.of<GuardianModeState>(context, listen: false).setGuardianMode(false);
                             Navigator.of(context).pop(); // Close the dialog
+                            if (!mounted) return;
                             Navigator.pushAndRemoveUntil(
                               context,
                               MaterialPageRoute(builder: (context) => const LoginScreen()),

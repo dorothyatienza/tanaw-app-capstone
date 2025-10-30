@@ -3,7 +3,9 @@ import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final _auth = FirebaseAuth.instance;
-  final _googleSignIn = GoogleSignIn();
+  final _googleSignIn = GoogleSignIn(
+    forceCodeForRefreshToken: true,
+  );
 
   Future<UserCredential?> signUp(String email, String password) async {
     try {
@@ -31,6 +33,9 @@ class AuthService {
 
   Future<UserCredential?> signInWithGoogle() async {
     try {
+      // Sign out first to force account picker on next sign-in
+      await _googleSignIn.signOut();
+      
       // Trigger the Google Sign-In flow
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       

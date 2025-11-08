@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:tanaw_app/state/auth_state.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:tanaw_app/screens/onboarding_screen.dart';
 import 'package:tanaw_app/screens/home_screen.dart';
 
@@ -19,6 +18,8 @@ class SplashScreenState extends State<SplashScreen>
   late Animation<double> _taglineFadeAnimation;
   late Animation<double> _dotsAnimation;
   late Animation<double> _fadeOutAnimation;
+  
+  final _auth = FirebaseAuth.instance;
 
   @override
   void initState() {
@@ -66,21 +67,16 @@ class SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    _controller.addStatusListener((status) {
+    _controller.addStatusListener((status) async {
       if (status == AnimationStatus.completed) {
-        _checkAuthAndNavigate();
-      }
-    });
-  }
-
-  void _checkAuthAndNavigate() {
-    // Add a small delay to ensure Firebase is initialized
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        final authState = Provider.of<AuthState>(context, listen: false);
+        // Check if user is already signed in
+        final user = _auth.currentUser;
         
-        if (authState.isAuthenticated) {
-          // User is already signed in, go to home
+        if (!mounted) return;
+        
+        // Navigate based on authentication state
+        if (user != null) {
+          // User is signed in, go to home screen
           Navigator.pushReplacement(
             context,
             PageRouteBuilder(

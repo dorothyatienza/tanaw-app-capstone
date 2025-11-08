@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:tanaw_app/screens/splash_screen.dart';
@@ -10,10 +12,7 @@ import 'package:tanaw_app/state/auth_state.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize Firebase
-  await Firebase.initializeApp();
-  
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(
     MultiProvider(
       providers: [
@@ -23,7 +22,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ProfileState()),
         ChangeNotifierProvider(create: (_) => app_connection.ConnectionState()),
       ],
-      child: const MyApp(), 
+      child: const MyApp(),
     ),
   );
 }

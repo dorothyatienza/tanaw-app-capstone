@@ -1,7 +1,5 @@
-import 'dart:io' if (dart.library.html) 'dart:html';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
 
 import 'package:provider/provider.dart';
 import 'package:tanaw_app/screens/guardian_home_screen.dart';
@@ -19,6 +17,7 @@ import 'terms_privacy_screen.dart';
 import 'package:tanaw_app/widgets/fade_page_route.dart';
 import 'package:tanaw_app/screens/status_screen.dart';
 import 'package:tanaw_app/services/tts_service.dart';
+import 'package:tanaw_app/services/auth_service.dart';
 import 'package:tanaw_app/state/profile_state.dart';
 import 'edit_profile_screen.dart';
 
@@ -43,10 +42,17 @@ class ProfileScreenState extends State<ProfileScreen> {
     });
   }
 
-  void _showLogoutConfirmationDialog(BuildContext context, bool isGuardianMode) {
-    final dialogBackgroundColor = isGuardianMode ? const Color(0xFF1E4872) : Colors.white;
+  void _showLogoutConfirmationDialog(
+    BuildContext context,
+    bool isGuardianMode,
+  ) {
+    final dialogBackgroundColor = isGuardianMode
+        ? const Color(0xFF1E4872)
+        : Colors.white;
     final titleTextColor = isGuardianMode ? Colors.white : Colors.black87;
-    final contentTextColor = isGuardianMode ? Colors.white70 : Colors.grey.shade600;
+    final contentTextColor = isGuardianMode
+        ? Colors.white70
+        : Colors.grey.shade600;
     final destructiveColor = Colors.redAccent;
 
     _ttsService.speak('Logout Confirmation');
@@ -95,25 +101,41 @@ class ProfileScreenState extends State<ProfileScreen> {
                           onPressed: () => Navigator.of(context).pop(),
                           child: Text(
                             'Cancel',
-                            style: TextStyle(color: contentTextColor, fontSize: 16),
+                            style: TextStyle(
+                              color: contentTextColor,
+                              fontSize: 16,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
                         ElevatedButton(
-                          onPressed: () {
-                            Provider.of<GuardianModeState>(context, listen: false).setGuardianMode(false);
+                          onPressed: () async {
+                            // Sign out from Firebase
+                            await AuthService().signOut();
+                            Provider.of<GuardianModeState>(
+                              context,
+                              listen: false,
+                            ).setGuardianMode(false);
                             Navigator.of(context).pop(); // Close the dialog
+                            if (!mounted) return;
                             Navigator.pushAndRemoveUntil(
                               context,
-                              MaterialPageRoute(builder: (context) => const LoginScreen()),
+                              MaterialPageRoute(
+                                builder: (context) => const LoginScreen(),
+                              ),
                               (Route<dynamic> route) => false,
                             );
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: destructiveColor,
                             foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
                           ),
                           child: const Text('Yes'),
                         ),
@@ -129,7 +151,9 @@ class ProfileScreenState extends State<ProfileScreen> {
                   decoration: BoxDecoration(
                     color: dialogBackgroundColor,
                     shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10)],
+                    boxShadow: [
+                      BoxShadow(color: Colors.black12, blurRadius: 10),
+                    ],
                   ),
                   child: Icon(Icons.logout, color: destructiveColor, size: 40),
                 ),
@@ -144,9 +168,10 @@ class ProfileScreenState extends State<ProfileScreen> {
   void _onItemTapped(int index) {
     if (index == _selectedIndex) return;
 
-    final isGuardianMode =
-        Provider.of<GuardianModeState>(context, listen: false)
-            .isGuardianModeEnabled;
+    final isGuardianMode = Provider.of<GuardianModeState>(
+      context,
+      listen: false,
+    ).isGuardianModeEnabled;
 
     setState(() {
       _selectedIndex = index;
@@ -158,9 +183,7 @@ class ProfileScreenState extends State<ProfileScreen> {
         page = const StatusScreen();
         break;
       case 1:
-        page = isGuardianMode
-            ? const GuardianHomeScreen()
-            : const HomeScreen();
+        page = isGuardianMode ? const GuardianHomeScreen() : const HomeScreen();
         break;
       case 2:
         page = const ProfileScreen();
@@ -173,18 +196,21 @@ class ProfileScreenState extends State<ProfileScreen> {
 
   void _showConfirmationDialog(bool isEnabling, bool isCurrentlyGuardian) {
     final bool isDarkMode = isCurrentlyGuardian;
-    final dialogBackgroundColor =
-        isDarkMode ? const Color(0xFF1E4872) : Colors.white;
+    final dialogBackgroundColor = isDarkMode
+        ? const Color(0xFF1E4872)
+        : Colors.white;
     final titleTextColor = isDarkMode ? Colors.white : Colors.black87;
-    final contentTextColor =
-        isDarkMode ? Colors.white70 : Colors.grey.shade600;
-    final accentColor =
-        isDarkMode ? Colors.cyanAccent : const Color(0xFF153A5B);
+    final contentTextColor = isDarkMode ? Colors.white70 : Colors.grey.shade600;
+    final accentColor = isDarkMode
+        ? Colors.cyanAccent
+        : const Color(0xFF153A5B);
     final destructiveColor = Colors.redAccent;
 
-    _ttsService.speak(isEnabling
-        ? 'Activate Guardian Mode Confirmation'
-        : 'Deactivate Guardian Mode Confirmation');
+    _ttsService.speak(
+      isEnabling
+          ? 'Activate Guardian Mode Confirmation'
+          : 'Deactivate Guardian Mode Confirmation',
+    );
 
     showDialog(
       context: context,
@@ -234,23 +260,29 @@ class ProfileScreenState extends State<ProfileScreen> {
                           onPressed: () => Navigator.of(context).pop(),
                           child: Text(
                             'Cancel',
-                            style:
-                                TextStyle(color: contentTextColor, fontSize: 16),
+                            style: TextStyle(
+                              color: contentTextColor,
+                              fontSize: 16,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 12),
                         ElevatedButton(
                           onPressed: () {
                             final guardianModeState =
-                                Provider.of<GuardianModeState>(context,
-                                    listen: false);
+                                Provider.of<GuardianModeState>(
+                                  context,
+                                  listen: false,
+                                );
                             guardianModeState.setGuardianMode(isEnabling);
 
                             Navigator.of(context).pop(); // Close the dialog
 
-                            _ttsService.speak(isEnabling
-                                ? "Guardian Mode Activated"
-                                : "Guardian Mode Deactivated");
+                            _ttsService.speak(
+                              isEnabling
+                                  ? "Guardian Mode Activated"
+                                  : "Guardian Mode Deactivated",
+                            );
 
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -281,13 +313,17 @@ class ProfileScreenState extends State<ProfileScreen> {
                             );
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                                isEnabling ? accentColor : destructiveColor,
+                            backgroundColor: isEnabling
+                                ? accentColor
+                                : destructiveColor,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8)),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 12),
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
                           ),
                           child: const Text('Confirm'),
                         ),
@@ -304,10 +340,7 @@ class ProfileScreenState extends State<ProfileScreen> {
                     color: dialogBackgroundColor,
                     shape: BoxShape.circle,
                     boxShadow: [
-                      BoxShadow(
-                        color: Colors.black12,
-                        blurRadius: 10,
-                      )
+                      BoxShadow(color: Colors.black12, blurRadius: 10),
                     ],
                   ),
                   child: Icon(
@@ -342,7 +375,9 @@ class ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       backgroundColor: isGuardianMode ? const Color(0xFF102A43) : Colors.white,
       appBar: _buildAppBar(context, isGuardianMode),
-      body: isGuardianMode ? _buildGuardianProfile(context) : _buildUserProfile(context),
+      body: isGuardianMode
+          ? _buildGuardianProfile(context)
+          : _buildUserProfile(context),
       bottomNavigationBar: AnimatedBottomNavBar(
         selectedIndex: _selectedIndex,
         onItemTapped: _onItemTapped,
@@ -364,43 +399,33 @@ class ProfileScreenState extends State<ProfileScreen> {
     final guardianModeState = Provider.of<GuardianModeState>(context);
     final isGuardianMode = guardianModeState.isGuardianModeEnabled;
     final profileState = Provider.of<ProfileState>(context);
+    final currentUser = FirebaseAuth.instance.currentUser;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildProfileHeader(
-            profileState.userName,
+          _buildUserProfileHeader(
+            currentUser,
             "Visually Impaired User",
-            profileState.userImageUrl != null
-                ? NetworkImage(profileState.userImageUrl!)
-                : (profileState.userImagePath != null && !kIsWeb
-                    ? FileImage(File(profileState.userImagePath!))
-                    : const AssetImage('assets/TANAW-LOGO2.0.png')) as ImageProvider,
             isGuardianMode,
           ),
           const SizedBox(height: 24),
-          _buildInfoCard(
-            context,
-            'Device & Status',
-            [
-              _buildInfoRow(Icons.email, 'Email', profileState.userEmail),
-              _buildInfoRow(Icons.phone, 'Phone', profileState.userPhone),
-              _buildInfoRow(Icons.phone_android, 'Device Connected', 'Yes'),
-              _buildInfoRow(Icons.toggle_on, 'Current Mode', 'User'),
-            ],
-            isGuardianMode,
-          ),
+          _buildInfoCard(context, 'Device & Status', [
+            _buildInfoRow(
+              Icons.email,
+              'Email',
+              currentUser?.email ?? profileState.userEmail,
+            ),
+            _buildInfoRow(Icons.phone, 'Phone', profileState.userPhone),
+            _buildInfoRow(Icons.phone_android, 'Device Connected', 'Yes'),
+            _buildInfoRow(Icons.toggle_on, 'Current Mode', 'User'),
+          ], isGuardianMode),
           const SizedBox(height: 16),
-          _buildInfoCard(
-            context,
-            'Preferences',
-            [
-              _buildInfoRow(Icons.language, 'Language', 'English'),
-            ],
-            isGuardianMode,
-          ),
+          _buildInfoCard(context, 'Preferences', [
+            _buildInfoRow(Icons.language, 'Language', 'English'),
+          ], isGuardianMode),
           const SizedBox(height: 24),
           _buildSettingsSection(context, isGuardianMode, guardianModeState),
         ],
@@ -412,122 +437,179 @@ class ProfileScreenState extends State<ProfileScreen> {
     final guardianModeState = Provider.of<GuardianModeState>(context);
     final isGuardianMode = guardianModeState.isGuardianModeEnabled;
     final profileState = Provider.of<ProfileState>(context);
+    final currentUser = FirebaseAuth.instance.currentUser;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildProfileHeader(
-            profileState.guardianName,
-            "Guardian",
-            profileState.guardianImagePath != null && !kIsWeb
-                ? FileImage(File(profileState.guardianImagePath!))
-                : const AssetImage('assets/TANAW-LOGO2.0.png'),
-            isGuardianMode,
-          ),
+          _buildUserProfileHeader(currentUser, "Guardian", isGuardianMode),
           const SizedBox(height: 24),
-          _buildInfoCard(
-            context,
-            'Device & Status',
-            [
-              _buildInfoRow(Icons.email, 'Email', profileState.guardianEmail,
-                  isGuardianMode: isGuardianMode),
-              _buildInfoRow(Icons.phone, 'Phone', profileState.guardianPhone,
-                  isGuardianMode: isGuardianMode),
-              _buildInfoRow(Icons.toggle_on, 'Current Mode', 'Guardian',
-                  isGuardianMode: isGuardianMode),
-            ],
-            isGuardianMode,
-          ),
+          _buildInfoCard(context, 'Device & Status', [
+            _buildInfoRow(
+              Icons.email,
+              'Email',
+              currentUser?.email ?? profileState.guardianEmail,
+              isGuardianMode: isGuardianMode,
+            ),
+            _buildInfoRow(
+              Icons.phone,
+              'Phone',
+              profileState.guardianPhone,
+              isGuardianMode: isGuardianMode,
+            ),
+            _buildInfoRow(
+              Icons.toggle_on,
+              'Current Mode',
+              'Guardian',
+              isGuardianMode: isGuardianMode,
+            ),
+          ], isGuardianMode),
           const SizedBox(height: 16),
-          _buildInfoCard(
-            context,
-            'Monitoring Status',
-            [
-              _buildInfoRow(Icons.person, 'Monitoring', "Blind Dela Cruz",
-                  isGuardianMode: isGuardianMode),
-              _buildInfoRow(Icons.sensors, 'Device Status', 'Connected',
-                  isGuardianMode: isGuardianMode),
-              _buildInfoRow(Icons.update, 'Last Update', '2 mins ago',
-                  isGuardianMode: isGuardianMode),
-              _buildInfoRow(Icons.location_on, 'Location Access', 'Enabled',
-                  isGuardianMode: isGuardianMode),
-            ],
-            isGuardianMode,
-          ),
+          _buildInfoCard(context, 'Monitoring Status', [
+            _buildInfoRow(
+              Icons.person,
+              'Monitoring',
+              "Blind Dela Cruz",
+              isGuardianMode: isGuardianMode,
+            ),
+            _buildInfoRow(
+              Icons.sensors,
+              'Device Status',
+              'Connected',
+              isGuardianMode: isGuardianMode,
+            ),
+            _buildInfoRow(
+              Icons.update,
+              'Last Update',
+              '2 mins ago',
+              isGuardianMode: isGuardianMode,
+            ),
+            _buildInfoRow(
+              Icons.location_on,
+              'Location Access',
+              'Enabled',
+              isGuardianMode: isGuardianMode,
+            ),
+          ], isGuardianMode),
           const SizedBox(height: 16),
-          _buildInfoCard(
-            context,
-            'Settings & More',
-            [
-              ListTile(
-                leading: const Icon(Icons.family_restroom, color: Colors.white),
-                title: const Text('Guardian Mode', style: TextStyle(color: Colors.white)),
-                trailing: Switch(
-                  value: isGuardianMode,
-                  onChanged: (value) => _showConfirmationDialog(value, isGuardianMode),
-                  activeColor: Colors.white,
-                  activeTrackColor: Colors.lightBlueAccent,
-                ),
+          _buildInfoCard(context, 'Settings & More', [
+            ListTile(
+              leading: const Icon(Icons.family_restroom, color: Colors.white),
+              title: const Text(
+                'Guardian Mode',
+                style: TextStyle(color: Colors.white),
               ),
-              _buildSettingsTile(Icons.notifications_outlined, 'Notification Settings', () {
+              trailing: Switch(
+                value: isGuardianMode,
+                onChanged: (value) =>
+                    _showConfirmationDialog(value, isGuardianMode),
+                activeColor: Colors.white,
+                activeTrackColor: Colors.lightBlueAccent,
+              ),
+            ),
+            _buildSettingsTile(
+              Icons.notifications_outlined,
+              'Notification Settings',
+              () {
                 Navigator.push(
                   context,
                   FadePageRoute(page: const NotificationSettingsScreen()),
                 );
-              }, isGuardianMode: true),
-              _buildSettingsTile(Icons.language, 'Language', () {
-                Navigator.push(
-                  context,
-                  FadePageRoute(page: const LanguageSettingsScreen()),
-                );
-              }, isGuardianMode: true),
-              _buildSettingsTile(Icons.lock_outline, 'Change Password', () {
-                Navigator.push(
-                  context,
-                  FadePageRoute(page: const ChangePasswordScreen()),
-                );
-              }, isGuardianMode: true),
-              _buildSettingsTile(Icons.help_outline, 'Guardian Guide / Help', () {
-                Navigator.push(
-                  context,
-                  FadePageRoute(page: const GuardianGuideScreen()),
-                );
-              }, isGuardianMode: true),
-              _buildSettingsTile(Icons.privacy_tip_outlined, 'Terms & Privacy', () {
+              },
+              isGuardianMode: true,
+            ),
+            _buildSettingsTile(Icons.language, 'Language', () {
+              Navigator.push(
+                context,
+                FadePageRoute(page: const LanguageSettingsScreen()),
+              );
+            }, isGuardianMode: true),
+            _buildSettingsTile(Icons.lock_outline, 'Change Password', () {
+              Navigator.push(
+                context,
+                FadePageRoute(page: const ChangePasswordScreen()),
+              );
+            }, isGuardianMode: true),
+            _buildSettingsTile(Icons.help_outline, 'Guardian Guide / Help', () {
+              Navigator.push(
+                context,
+                FadePageRoute(page: const GuardianGuideScreen()),
+              );
+            }, isGuardianMode: true),
+            _buildSettingsTile(
+              Icons.privacy_tip_outlined,
+              'Terms & Privacy',
+              () {
                 Navigator.push(
                   context,
                   FadePageRoute(page: const TermsPrivacyScreen()),
                 );
-              }, isGuardianMode: true),
-              _buildSettingsTile(Icons.logout, 'Logout', () {
-                _showLogoutConfirmationDialog(context, true);
-              }, isGuardianMode: true),
-            ],
-            isGuardianMode,
-          ),
+              },
+              isGuardianMode: true,
+            ),
+            _buildSettingsTile(Icons.logout, 'Logout', () {
+              _showLogoutConfirmationDialog(context, true);
+            }, isGuardianMode: true),
+          ], isGuardianMode),
         ],
       ),
     );
   }
 
-  Widget _buildProfileHeader(
-      String name, String role, ImageProvider imageProvider, bool isGuardianMode) {
-    
+  Widget _buildUserProfileHeader(User? user, String role, bool isGuardianMode) {
+    // Get email
+    String email = user?.email ?? '';
+
+    // Determine if user is from Google Sign-In (has photoURL)
+    final bool isGoogleUser =
+        user != null && user.photoURL != null && user.photoURL!.isNotEmpty;
+
+    // Get display name
+    String displayName;
+    if (user != null && isGoogleUser) {
+      // Google Sign-In user: use displayName or fallback to email
+      displayName = user.displayName ?? email.split('@')[0];
+    } else {
+      // Email/password user: generate username from email
+      displayName = email.isNotEmpty ? email.split('@')[0] : 'User';
+    }
+
+    // Get first letter for placeholder avatar
+    final String firstLetter = email.isNotEmpty ? email[0].toUpperCase() : 'U';
+
     return Row(
       children: [
-        CircleAvatar(
-          radius: 40,
-          backgroundImage: imageProvider,
-        ),
+        // Profile picture: photoURL if available, otherwise placeholder
+        user != null && user.photoURL != null && user.photoURL!.isNotEmpty
+            ? CircleAvatar(
+                radius: 40,
+                backgroundImage: NetworkImage(user.photoURL!),
+              )
+            : CircleAvatar(
+                radius: 40,
+                backgroundColor: isGuardianMode
+                    ? Colors.cyanAccent.withOpacity(0.3)
+                    : const Color(0xFF153A5B).withOpacity(0.2),
+                child: Text(
+                  firstLetter,
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: isGuardianMode
+                        ? Colors.cyanAccent
+                        : const Color(0xFF153A5B),
+                  ),
+                ),
+              ),
         const SizedBox(width: 16),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                name,
+                displayName,
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -543,6 +625,19 @@ class ProfileScreenState extends State<ProfileScreen> {
                   color: isGuardianMode ? Colors.white70 : Colors.grey.shade700,
                 ),
               ),
+              if (email.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  email,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isGuardianMode
+                        ? Colors.white60
+                        : Colors.grey.shade600,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ],
           ),
         ),
@@ -562,17 +657,26 @@ class ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildInfoCard(BuildContext context, String title, List<Widget> children, bool isGuardianMode) {
+  Widget _buildInfoCard(
+    BuildContext context,
+    String title,
+    List<Widget> children,
+    bool isGuardianMode,
+  ) {
     final cardColor = isGuardianMode ? const Color(0xFF1E4872) : Colors.white;
     final titleColor = isGuardianMode ? Colors.white : Colors.black;
 
     return Card(
       color: cardColor,
       elevation: isGuardianMode ? 4 : 2,
-      shadowColor: isGuardianMode ? Colors.black.withAlpha(51) : Colors.grey.withAlpha(100),
+      shadowColor: isGuardianMode
+          ? Colors.black.withAlpha(51)
+          : Colors.grey.withAlpha(100),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: isGuardianMode ? BorderSide.none : BorderSide(color: Colors.grey.shade200, width: 1),
+        side: isGuardianMode
+            ? BorderSide.none
+            : BorderSide(color: Colors.grey.shade200, width: 1),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -581,7 +685,11 @@ class ProfileScreenState extends State<ProfileScreen> {
           children: [
             Text(
               title,
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: titleColor),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: titleColor,
+              ),
             ),
             const Divider(height: 20, thickness: 1),
             ...children,
@@ -591,7 +699,12 @@ class ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String value, {bool isGuardianMode = false}) {
+  Widget _buildInfoRow(
+    IconData icon,
+    String label,
+    String value, {
+    bool isGuardianMode = false,
+  }) {
     final labelColor = isGuardianMode ? Colors.white : Colors.black;
     final valueColor = isGuardianMode ? Colors.white : Colors.black;
     final iconColor = isGuardianMode ? Colors.white : Colors.grey[800];
@@ -604,18 +717,24 @@ class ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(width: 16),
           Text(label, style: TextStyle(fontSize: 16, color: labelColor)),
           const Spacer(),
-          Text(value,
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: valueColor)),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+              color: valueColor,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildSettingsSection(BuildContext context, bool isGuardianMode,
-      GuardianModeState guardianModeState) {
+  Widget _buildSettingsSection(
+    BuildContext context,
+    bool isGuardianMode,
+    GuardianModeState guardianModeState,
+  ) {
     final ttsState = Provider.of<TtsState>(context);
 
     return Card(
@@ -681,18 +800,12 @@ class ProfileScreenState extends State<ProfileScreen> {
               },
               isGuardianMode: isGuardianMode,
             ),
-            _buildSettingsActionRow(
-              context,
-              Icons.language,
-              'Language',
-              () {
-                Navigator.push(
-                  context,
-                  FadePageRoute(page: const LanguageSettingsScreen()),
-                );
-              },
-              isGuardianMode: isGuardianMode,
-            ),
+            _buildSettingsActionRow(context, Icons.language, 'Language', () {
+              Navigator.push(
+                context,
+                FadePageRoute(page: const LanguageSettingsScreen()),
+              );
+            }, isGuardianMode: isGuardianMode),
             _buildSettingsActionRow(
               context,
               Icons.lock_outline,
@@ -730,22 +843,21 @@ class ProfileScreenState extends State<ProfileScreen> {
               },
               isGuardianMode: isGuardianMode,
             ),
-            _buildSettingsActionRow(
-              context,
-              Icons.logout,
-              'Logout',
-              () {
-                _showLogoutConfirmationDialog(context, isGuardianMode);
-              },
-              isGuardianMode: isGuardianMode,
-            ),
+            _buildSettingsActionRow(context, Icons.logout, 'Logout', () {
+              _showLogoutConfirmationDialog(context, isGuardianMode);
+            }, isGuardianMode: isGuardianMode),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSettingsTile(IconData icon, String title, VoidCallback onTap, {bool isGuardianMode = false}) {
+  Widget _buildSettingsTile(
+    IconData icon,
+    String title,
+    VoidCallback onTap, {
+    bool isGuardianMode = false,
+  }) {
     final tileColor = isGuardianMode ? Colors.white : Colors.black87;
     return ListTile(
       leading: Icon(icon, color: tileColor),
@@ -756,8 +868,12 @@ class ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildSettingsRow(
-      BuildContext context, IconData icon, String title, Widget trailing,
-      {bool isGuardianMode = false}) {
+    BuildContext context,
+    IconData icon,
+    String title,
+    Widget trailing, {
+    bool isGuardianMode = false,
+  }) {
     final tileColor = isGuardianMode ? Colors.white : Colors.black;
 
     return ListTile(
@@ -772,8 +888,12 @@ class ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildSettingsActionRow(
-      BuildContext context, IconData icon, String title, VoidCallback onTap,
-      {bool isGuardianMode = false}) {
+    BuildContext context,
+    IconData icon,
+    String title,
+    VoidCallback onTap, {
+    bool isGuardianMode = false,
+  }) {
     final tileColor = isGuardianMode ? Colors.white : Colors.black;
     final arrowColor = isGuardianMode ? Colors.white : tileColor.withAlpha(178);
 
@@ -784,8 +904,7 @@ class ProfileScreenState extends State<ProfileScreen> {
         title,
         style: TextStyle(color: tileColor, fontWeight: FontWeight.w500),
       ),
-      trailing:
-          Icon(Icons.arrow_forward_ios, color: arrowColor, size: 16),
+      trailing: Icon(Icons.arrow_forward_ios, color: arrowColor, size: 16),
       onTap: onTap,
     );
   }

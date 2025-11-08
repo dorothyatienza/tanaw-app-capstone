@@ -1,11 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:tanaw_app/state/profile_state.dart';
-import 'package:provider/provider.dart';
-import 'package:tanaw_app/state/auth_state.dart';
-import 'package:tanaw_app/widgets/google_consent_screen.dart';
+import 'package:tanaw_app/services/auth_service.dart';
 import 'login_screen.dart';
 import 'complete_profile_screen.dart';
 
@@ -71,19 +67,189 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                   child: Padding(
                     padding: const EdgeInsets.all(24.0),
-                    child: Form(
-                      key: _formKey,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          const Text(
-                            'Be Part of Tanaw!',
-                            textAlign: TextAlign.center,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text(
+                          'Be Part of Tanaw!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF153A5B),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'A smarter way to see the world—together!',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        const SizedBox(height: 30),
+                        _buildTextField(
+                          label: 'Email Address',
+                          controller: emailController,
+                          icon: Icons.email_outlined,
+                        ),
+                        const SizedBox(height: 20),
+                        _buildTextField(
+                          label: 'Password',
+                          controller: passwordController,
+                          icon: Icons.lock_outline,
+                          obscureText: true,
+                        ),
+                        const SizedBox(height: 20),
+                        _buildTextField(
+                          label: 'Confirm Password',
+                          controller: confirmPasswordController,
+                          icon: Icons.lock_outline,
+                          obscureText: true,
+                        ),
+                        const SizedBox(height: 30),
+                        ElevatedButton(
+                          onPressed: () async {
+                            HapticFeedback.lightImpact();
+                            final email = emailController.text.trim();
+                            final password = passwordController.text;
+                            final confirmPassword =
+                                confirmPasswordController.text;
+                            if (email.isEmpty ||
+                                password.isEmpty ||
+                                confirmPassword.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Please fill in all fields'),
+                                ),
+                              );
+                              return;
+                            }
+                            if (password != confirmPassword) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Passwords do not match'),
+                                ),
+                              );
+                              return;
+                            }
+                            try {
+                              await AuthService().signUp(email, password);
+                              if (!mounted) return;
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AccountCreatedScreen(),
+                                ),
+                              );
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Sign up failed:  ${e.toString()}',
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF153A5B),
+                            minimumSize: const Size.fromHeight(55),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text(
+                            'Sign Up',
                             style: TextStyle(
-                              fontSize: 28,
+                              fontSize: 18,
+                              color: Colors.white,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFF153A5B),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            const Expanded(child: Divider()),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16.0,
+                              ),
+                              child: Text(
+                                'or connect with',
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                            const Expanded(child: Divider()),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _buildSocialButton(
+                              icon: FontAwesomeIcons.google,
+                              color: const Color(0xFFDB4437),
+                              onPressed: () async {
+                                HapticFeedback.lightImpact();
+                                try {
+                                  await AuthService().signInWithGoogle();
+                                  if (!mounted) return;
+                                  Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const AccountCreatedScreen(),
+                                    ),
+                                  );
+                                } catch (e) {
+                                  if (!mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Google Sign-In failed: ${e.toString().contains('canceled') ? 'Sign-in was canceled' : e.toString()}',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const LoginScreen(),
+                              ),
+                            );
+                          },
+                          child: RichText(
+                            textAlign: TextAlign.center,
+                            text: TextSpan(
+                              text: 'Already have an account? ',
+                              style: TextStyle(
+                                color: Colors.grey.shade700,
+                                fontSize: 15,
+                              ),
+                              children: const [
+                                TextSpan(
+                                  text: 'Sign In',
+                                  style: TextStyle(
+                                    color: Color(0xFF153A5B),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                           const SizedBox(height: 8),
@@ -403,18 +569,21 @@ class _SignupScreenState extends State<SignupScreen> {
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,
             ),
-            contentPadding:
-                const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+            contentPadding: const EdgeInsets.symmetric(
+              vertical: 16,
+              horizontal: 20,
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildSocialButton(
-      {required IconData icon,
-      required Color color,
-      required VoidCallback? onPressed}) {
+  Widget _buildSocialButton({
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
     return InkWell(
       onTap: onPressed,
       borderRadius: BorderRadius.circular(24),
@@ -422,17 +591,10 @@ class _SignupScreenState extends State<SignupScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: color, width: 1.5),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            FaIcon(icon, color: color, size: 20),
-            const SizedBox(width: 10),
-            Text('Continue with Google', style: TextStyle(color: color, fontWeight: FontWeight.w600)),
-          ],
-        ),
+        child: FaIcon(icon, color: color, size: 24),
       ),
     );
   }

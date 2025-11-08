@@ -7,6 +7,8 @@ import 'package:tanaw_app/state/guardian_mode_state.dart';
 import 'package:tanaw_app/widgets/animated_bottom_nav_bar.dart';
 import 'package:tanaw_app/widgets/app_logo.dart';
 import 'package:tanaw_app/widgets/fade_page_route.dart';
+import 'package:tanaw_app/services/firebase_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class GuardianHomeScreen extends StatefulWidget {
   const GuardianHomeScreen({super.key});
@@ -20,7 +22,7 @@ class GuardianHomeScreenState extends State<GuardianHomeScreen>
   late AnimationController _animationController;
   final FlutterTts _flutterTts = FlutterTts();
   int _selectedIndex = 1;
-  int? _expandedIndex;
+  String? _expandedId;
 
   void _onItemTapped(int index) {
     if (index == _selectedIndex) return;
@@ -47,37 +49,6 @@ class GuardianHomeScreenState extends State<GuardianHomeScreen>
         break;
     }
   }
-
-  final List<Map<String, dynamic>> _records = [
-    {
-      'type': 'STAIRS',
-      'message': 'The designated team based on your report will be there soon.',
-      'location': '- Maharlika Highway, Sto. Tomas City, Batangas 4234',
-      'time': '10:42 AM',
-      'icon': Icons.stairs_outlined,
-    },
-    {
-      'type': 'HUMAN',
-      'message': 'A person was detected nearby.',
-      'location': '- General Malvar Street, Poblacion 2, Sto. Tomas City',
-      'time': '10:41 AM',
-      'icon': Icons.person_search_sharp,
-    },
-    {
-      'type': 'GATE',
-      'message': 'Approaching a gate. Proceed with caution.',
-      'location': '- TANAW Office, Sto. Tomas City, Batangas',
-      'time': '10:38 AM',
-      'icon': Icons.fence,
-    },
-    {
-      'type': 'DOOR',
-      'message': 'A door was identified in the path.',
-      'location': '- TANAW Office, Sto. Tomas City, Batangas',
-      'time': '10:37 AM',
-      'icon': Icons.meeting_room_outlined,
-    },
-  ];
 
   @override
   void initState() {
@@ -109,15 +80,15 @@ class GuardianHomeScreenState extends State<GuardianHomeScreen>
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: AppLogo(
-            isGuardianMode:
-                Provider.of<GuardianModeState>(context).isGuardianModeEnabled),
+          isGuardianMode: Provider.of<GuardianModeState>(
+            context,
+          ).isGuardianModeEnabled,
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.volume_up_outlined, color: Colors.white),
             onPressed: () {
-              final latestRecord = _records.first;
-              _speak(
-                  'Latest detection: ${latestRecord['type']}. ${latestRecord['message']}');
+              _speak('Latest detections loaded from Firestore');
             },
             tooltip: 'Read Latest Record',
           ),
@@ -150,7 +121,7 @@ class GuardianHomeScreenState extends State<GuardianHomeScreen>
               ),
             ),
             const SizedBox(height: 20),
-            Expanded(child: _buildTimeline()),
+            Expanded(child: _buildDetectionsStream()),
             _buildDeviceStatus(),
             const SizedBox(height: 20),
           ],
@@ -200,15 +171,23 @@ class GuardianHomeScreenState extends State<GuardianHomeScreen>
     return Center(
       child: Column(
         children: [
-          const Text("User's Device Status:",
-              style: TextStyle(color: Colors.white, fontSize: 16)),
+          const Text(
+            "User's Device Status:",
+            style: TextStyle(color: Colors.white, fontSize: 16),
+          ),
           const SizedBox(height: 8),
           Chip(
-            avatar: const Icon(Icons.check_circle, color: Colors.white, size: 20),
+            avatar: const Icon(
+              Icons.check_circle,
+              color: Colors.white,
+              size: 20,
+            ),
             label: const Text('Connected'),
             backgroundColor: const Color(0xFF163C63),
             labelStyle: const TextStyle(
-                color: Colors.white, fontWeight: FontWeight.bold),
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           ),
         ],
@@ -216,94 +195,246 @@ class GuardianHomeScreenState extends State<GuardianHomeScreen>
     );
   }
 
-  Widget _buildTimeline() {
-    return ListView.builder(
-      itemCount: _records.length,
-      itemBuilder: (context, index) {
-        final record = _records[index];
-        final isExpanded = _expandedIndex == index;
+  Widget _buildDetectionsStream() {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: FirebaseService.streamDetections(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(color: Colors.white),
+          );
+        }
 
-        final Color cardColor =
-            isExpanded ? Colors.white : const Color(0xFFD6E9F8);
-        final Color textColor = const Color(0xFF173A5E);
-        final Color subtitleColor = Colors.grey.shade600;
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Error loading detections: ${snapshot.error}',
+              style: const TextStyle(color: Colors.white),
+            ),
+          );
+        }
 
-        return Card(
-          elevation: 2,
-          margin: const EdgeInsets.symmetric(vertical: 6),
-          color: cardColor,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: ExpansionTile(
-            key: ValueKey(index),
-            initiallyExpanded: isExpanded,
-            onExpansionChanged: (expanded) {
-              setState(() {
-                _expandedIndex = expanded ? index : null;
-              });
-            },
-            leading: Icon(record['icon'], color: textColor, size: 32),
-            title: Text(
-              'Encountered: ${record['type']}',
-              style: TextStyle(
-                color: textColor,
-                fontWeight: FontWeight.bold,
-              ),
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(
+            child: Text(
+              'No detections found',
+              style: TextStyle(color: Colors.white70),
             ),
-            subtitle: Text(
-              record['message'],
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(fontSize: 12, color: subtitleColor),
-            ),
-            trailing: Icon(Icons.expand_more, color: textColor),
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0, vertical: 12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      record['message'],
-                      style: TextStyle(color: textColor),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(Icons.location_on_outlined,
-                            size: 14, color: subtitleColor),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            record['location'],
-                            style: TextStyle(
-                                color: subtitleColor,
-                                fontStyle: FontStyle.italic),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(Icons.access_time_filled_outlined,
-                            size: 14, color: subtitleColor),
-                        const SizedBox(width: 4),
-                        Text(
-                          record['time'],
-                          style: TextStyle(color: subtitleColor),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+          );
+        }
+
+        final detections = snapshot.data!;
+        final groupedDetections = _groupDetectionsByDate(detections);
+
+        return ListView.builder(
+          itemCount: groupedDetections.length,
+          itemBuilder: (context, index) {
+            final group = groupedDetections[index];
+            return _buildDetectionGroup(group['title'], group['detections']);
+          },
         );
       },
     );
+  }
+
+  List<Map<String, dynamic>> _groupDetectionsByDate(
+    List<Map<String, dynamic>> detections,
+  ) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final weekStart = today.subtract(const Duration(days: 7));
+
+    final Map<String, List<Map<String, dynamic>>> groups = {
+      'TODAY': [],
+      'YESTERDAY': [],
+      'THIS WEEK': [],
+      'OLDER': [],
+    };
+
+    for (final detection in detections) {
+      final timestamp = detection['timestamp'] as Timestamp?;
+      if (timestamp == null) continue;
+
+      final detectionDate = timestamp.toDate();
+      final detectionDay = DateTime(
+        detectionDate.year,
+        detectionDate.month,
+        detectionDate.day,
+      );
+
+      if (detectionDay == today) {
+        groups['TODAY']!.add(detection);
+      } else if (detectionDay == yesterday) {
+        groups['YESTERDAY']!.add(detection);
+      } else if (detectionDate.isAfter(weekStart)) {
+        groups['THIS WEEK']!.add(detection);
+      } else {
+        groups['OLDER']!.add(detection);
+      }
+    }
+
+    return groups.entries
+        .where((entry) => entry.value.isNotEmpty)
+        .map((entry) => {'title': entry.key, 'detections': entry.value})
+        .toList();
+  }
+
+  Widget _buildDetectionGroup(
+    String title,
+    List<Map<String, dynamic>> detections,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12.0),
+          child: Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
+            ),
+          ),
+        ),
+        ...detections.map((detection) => _buildDetectionCard(detection)),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildDetectionCard(Map<String, dynamic> detection) {
+    final isExpanded = _expandedId == detection['id'];
+    final icon = _mapStoredIconToIconData(detection);
+
+    final Color cardColor = isExpanded ? Colors.white : const Color(0xFFD6E9F8);
+    final Color textColor = const Color(0xFF173A5E);
+    final Color subtitleColor = Colors.grey.shade600;
+
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      color: cardColor,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ExpansionTile(
+        key: ValueKey(detection['id']),
+        initiallyExpanded: isExpanded,
+        onExpansionChanged: (expanded) {
+          setState(() {
+            _expandedId = expanded ? (detection['id'] as String?) : null;
+          });
+        },
+        leading: Icon(icon, color: textColor, size: 32),
+        title: Text(
+          'Encountered: ${detection['type']}',
+          style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(
+          detection['message'] ?? '',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(fontSize: 12, color: subtitleColor),
+        ),
+        trailing: Icon(Icons.expand_more, color: textColor),
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 12.0,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  detection['message'] ?? '',
+                  style: TextStyle(color: textColor),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.location_on_outlined,
+                      size: 14,
+                      color: subtitleColor,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        detection['location'] ?? '',
+                        style: TextStyle(
+                          color: subtitleColor,
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.access_time_filled_outlined,
+                      size: 14,
+                      color: subtitleColor,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      detection['time'] ?? '',
+                      style: TextStyle(color: subtitleColor),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _mapStoredIconToIconData(Map<String, dynamic> detection) {
+    // Try to reconstruct IconData from stored properties
+    if (detection['iconCodePoint'] != null) {
+      return IconData(
+        detection['iconCodePoint'],
+        fontFamily: detection['iconFontFamily'],
+        fontPackage: detection['iconFontPackage'],
+        matchTextDirection: detection['iconMatchTextDirection'] ?? false,
+      );
+    }
+
+    // Fallback to string-based icon mapping
+    final iconString = detection['icon']?.toString() ?? '';
+    switch (iconString) {
+      case 'Icons.stairs_outlined':
+        return Icons.stairs_outlined;
+      case 'Icons.water_drop_outlined':
+        return Icons.water_drop_outlined;
+      case 'Icons.elevator_outlined':
+        return Icons.elevator_outlined;
+      case 'Icons.block_outlined':
+        return Icons.block_outlined;
+      case 'Icons.construction_outlined':
+        return Icons.construction_outlined;
+      case 'Icons.announcement_outlined':
+        return Icons.announcement_outlined;
+      case 'Icons.ramp_right_outlined':
+        return Icons.ramp_right_outlined;
+      case 'Icons.directions_walk_outlined':
+        return Icons.directions_walk_outlined;
+      case 'Icons.expand_less_outlined':
+        return Icons.expand_less_outlined;
+      case 'Icons.terrain_outlined':
+        return Icons.terrain_outlined;
+      case 'Icons.traffic_outlined':
+        return Icons.traffic_outlined;
+      case 'Icons.alt_route_outlined':
+        return Icons.alt_route_outlined;
+      default:
+        return Icons.help_outline; // Neutral fallback
+    }
   }
 }
 
@@ -345,4 +476,4 @@ class _DashboardItem extends StatelessWidget {
       ),
     );
   }
-} 
+}

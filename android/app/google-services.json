@@ -1,41 +1,41 @@
 {
   "project_info": {
-    "project_number": "110623105802",
-    "project_id": "tanaw-app",
-    "storage_bucket": "tanaw-app.firebasestorage.app"
+    "project_number": "461534574635",
+    "project_id": "tanaw-sqa",
+    "storage_bucket": "tanaw-sqa.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:110623105802:android:caa04ffd83683675aa10f3",
+        "mobilesdk_app_id": "1:461534574635:android:ab5bd6432a580d060cd26e",
         "android_client_info": {
           "package_name": "com.example.tanaw_app"
         }
       },
       "oauth_client": [
         {
-          "client_id": "110623105802-3sfmfp58f6ht2g7dbadsb3tmbp3vg3u5.apps.googleusercontent.com",
+          "client_id": "461534574635-cd5qddkh8ivil20mgcd1ge2o930ub7qe.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.example.tanaw_app",
-            "certificate_hash": "51b926615493aaeaf18ac2e7fd86043468dd7d31"
+            "certificate_hash": "8d7c682952c1fb1579d39982bf46fb44f05a4caf"
           }
         },
         {
-          "client_id": "110623105802-e48btrt6g8bj1mmeh0i5kb5hp11bsfsl.apps.googleusercontent.com",
+          "client_id": "461534574635-67v3ebt4joeqcpsfbj20spqo1k71abl4.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyAaVtT0QehNvvmB1jgnGDLQAUZHLxl9WR8"
+          "current_key": "AIzaSyANSz8AC_1AXOBVeeCkZTpabxdthCEBuo0"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "110623105802-e48btrt6g8bj1mmeh0i5kb5hp11bsfsl.apps.googleusercontent.com",
+              "client_id": "461534574635-67v3ebt4joeqcpsfbj20spqo1k71abl4.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

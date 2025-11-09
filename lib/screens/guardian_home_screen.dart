@@ -141,30 +141,79 @@ class GuardianHomeScreenState extends State<GuardianHomeScreen>
         color: const Color(0xFF163C63),
         borderRadius: BorderRadius.circular(15),
       ),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _DashboardItem(
-            icon: Icons.location_on,
-            title: 'Location',
-            value: 'Active',
-            tooltip: 'Location tracking is active and sharing.',
-          ),
-          _DashboardItem(
-            icon: Icons.watch_later,
-            title: 'Last Detected',
-            value: '2 mins ago',
-            tooltip: 'Time since the last object was detected.',
-          ),
-          _DashboardItem(
-            icon: Icons.receipt_long,
-            title: 'Total Records',
-            value: '8',
-            tooltip: 'Total objects detected in this session.',
-          ),
-        ],
+      child: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: FirebaseService.streamDetections(),
+        builder: (context, snapshot) {
+          // Calculate Last Detected and Total Records from Firestore data
+          String lastDetectedText = 'No detections';
+          String totalRecordsText = '0';
+
+          if (snapshot.hasData && snapshot.data!.isNotEmpty) {
+            final detections = snapshot.data!;
+
+            // Total Records: count all detections
+            totalRecordsText = detections.length.toString();
+
+            // Last Detected: get the most recent detection (first in the list since it's ordered by timestamp descending)
+            final mostRecent = detections.first;
+            final timestamp = mostRecent['timestamp'] as Timestamp?;
+            if (timestamp != null) {
+              lastDetectedText = _formatTimeAgo(timestamp.toDate());
+            }
+          } else if (snapshot.connectionState == ConnectionState.waiting) {
+            lastDetectedText = 'Loading...';
+            totalRecordsText = '...';
+          }
+
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              const _DashboardItem(
+                icon: Icons.location_on,
+                title: 'Location',
+                value: 'Active',
+                tooltip: 'Location tracking is active and sharing.',
+              ),
+              _DashboardItem(
+                icon: Icons.watch_later,
+                title: 'Last Detected',
+                value: lastDetectedText,
+                tooltip: 'Time since the last object was detected.',
+              ),
+              _DashboardItem(
+                icon: Icons.receipt_long,
+                title: 'Total Records',
+                value: totalRecordsText,
+                tooltip: 'Total objects detected (all-time count).',
+              ),
+            ],
+          );
+        },
       ),
     );
+  }
+
+  /// Formats a DateTime to a human-readable "time ago" string.
+  /// Returns format like "2 mins ago", "3 hours ago", "1 day ago".
+  String _formatTimeAgo(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    // Calculate time difference in minutes, hours, and days
+    final minutes = difference.inMinutes;
+    final hours = difference.inHours;
+    final days = difference.inDays;
+
+    // Return the most appropriate unit (minutes, hours, or days)
+    if (days > 0) {
+      return '$days ${days == 1 ? 'day' : 'days'} ago';
+    } else if (hours > 0) {
+      return '$hours ${hours == 1 ? 'hour' : 'hours'} ago';
+    } else if (minutes > 0) {
+      return '$minutes ${minutes == 1 ? 'min' : 'mins'} ago';
+    } else {
+      return 'Just now';
+    }
   }
 
   Widget _buildDeviceStatus() {

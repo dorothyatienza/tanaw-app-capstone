@@ -438,6 +438,17 @@ class ProfileScreenState extends State<ProfileScreen> {
     final isGuardianMode = guardianModeState.isGuardianModeEnabled;
     final profileState = Provider.of<ProfileState>(context);
     final currentUser = FirebaseAuth.instance.currentUser;
+    final String monitoringName = () {
+      final displayName = currentUser?.displayName?.trim();
+      if (displayName != null && displayName.isNotEmpty) {
+        return displayName;
+      }
+      final email = currentUser?.email;
+      if (email != null && email.contains('@')) {
+        return email.split('@')[0];
+      }
+      return profileState.userName;
+    }();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
@@ -471,19 +482,13 @@ class ProfileScreenState extends State<ProfileScreen> {
             _buildInfoRow(
               Icons.person,
               'Monitoring',
-              "Blind Dela Cruz",
+              monitoringName,
               isGuardianMode: isGuardianMode,
             ),
             _buildInfoRow(
               Icons.sensors,
               'Device Status',
               'Connected',
-              isGuardianMode: isGuardianMode,
-            ),
-            _buildInfoRow(
-              Icons.update,
-              'Last Update',
-              '2 mins ago',
               isGuardianMode: isGuardianMode,
             ),
             _buildInfoRow(

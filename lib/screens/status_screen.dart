@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:tanaw_app/screens/home_screen.dart';
 import 'package:tanaw_app/screens/profile_screen.dart';
 import 'package:tanaw_app/state/guardian_mode_state.dart';
@@ -8,6 +9,7 @@ import 'package:tanaw_app/widgets/animated_bottom_nav_bar.dart';
 import 'package:tanaw_app/widgets/app_logo.dart';
 import 'package:tanaw_app/widgets/fade_page_route.dart';
 import 'package:tanaw_app/screens/guardian_home_screen.dart';
+import 'package:tanaw_app/services/firebase_service.dart';
 
 class StatusScreen extends StatefulWidget {
   const StatusScreen({super.key});
@@ -22,9 +24,10 @@ class StatusScreenState extends State<StatusScreen> {
   void _onItemTapped(int index) {
     if (index == _selectedIndex) return;
 
-    final isGuardianMode =
-        Provider.of<GuardianModeState>(context, listen: false)
-            .isGuardianModeEnabled;
+    final isGuardianMode = Provider.of<GuardianModeState>(
+      context,
+      listen: false,
+    ).isGuardianModeEnabled;
 
     setState(() {
       _selectedIndex = index;
@@ -36,9 +39,7 @@ class StatusScreenState extends State<StatusScreen> {
         page = const StatusScreen();
         break;
       case 1:
-        page = isGuardianMode
-            ? const GuardianHomeScreen()
-            : const HomeScreen();
+        page = isGuardianMode ? const GuardianHomeScreen() : const HomeScreen();
         break;
       case 2:
         page = const ProfileScreen();
@@ -51,93 +52,167 @@ class StatusScreenState extends State<StatusScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isGuardianMode =
-        Provider.of<GuardianModeState>(context).isGuardianModeEnabled;
-    final connectionState = Provider.of<app_connection.ConnectionState>(context);
+    final isGuardianMode = Provider.of<GuardianModeState>(
+      context,
+    ).isGuardianModeEnabled;
+    final connectionState = Provider.of<app_connection.ConnectionState>(
+      context,
+    );
 
-    final cardColor =
-        isGuardianMode ? const Color(0xFF163C63) : Colors.white;
+    final cardColor = isGuardianMode ? const Color(0xFF163C63) : Colors.white;
     final cardTitleColor = isGuardianMode ? Colors.white : Colors.black87;
-    final cardContentColor =
-        isGuardianMode ? Colors.white : Colors.black54;
+    final cardContentColor = isGuardianMode ? Colors.white : Colors.black54;
 
     return Scaffold(
-      backgroundColor:
-          isGuardianMode ? const Color(0xFF102A43) : Colors.white,
+      backgroundColor: isGuardianMode ? const Color(0xFF102A43) : Colors.white,
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        backgroundColor:
-            isGuardianMode ? Colors.transparent : Colors.white,
+        backgroundColor: isGuardianMode ? Colors.transparent : Colors.white,
         elevation: 0,
         title: AppLogo(isGuardianMode: isGuardianMode),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20.0),
-        children: [
-          _buildInfoCard(
-            isGuardianMode: isGuardianMode,
-            cardColor: cardColor,
-            titleColor: cardTitleColor,
-            contentColor: cardContentColor,
-            title: 'Device Connection',
-            icon: Icons.wifi_tethering_rounded,
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: FirebaseService.streamDetections(),
+        builder: (context, snapshot) {
+          final detections = snapshot.data ?? <Map<String, dynamic>>[];
+          final bool isLoadingData =
+              snapshot.connectionState == ConnectionState.waiting &&
+              !snapshot.hasData;
+          final Map<String, dynamic>? latestDetection = detections.isNotEmpty
+              ? detections.first
+              : null;
+
+          final Timestamp? latestTimestamp =
+              latestDetection?['timestamp'] as Timestamp?;
+          final String lastSyncedText = isLoadingData
+              ? 'Loading...'
+              : latestTimestamp != null
+              ? _formatTimeAgo(latestTimestamp.toDate())
+              : detections.isNotEmpty
+              ? (latestDetection?['time']?.toString() ?? 'Just now')
+              : 'No sync yet';
+
+          // totalRecordsText removed as per requirement (no longer displayed)
+
+          final String lastKnownLocation = isLoadingData
+              ? 'Loading...'
+              : (latestDetection?['location']?.toString() ??
+                    'No location data');
+
+          return ListView(
+            padding: const EdgeInsets.all(20.0),
             children: [
-              _buildInfoRow(
-                'Status',
-                connectionState.isConnected ? 'Connected' : 'Disconnected',
-                cardContentColor,
-                connectionState.isConnected ? Icons.check_circle : Icons.cancel,
-                connectionState.isConnected ? Colors.green : Colors.red,
+              _buildInfoCard(
+                isGuardianMode: isGuardianMode,
+                cardColor: cardColor,
+                titleColor: cardTitleColor,
+                contentColor: cardContentColor,
+                title: 'Device Connection',
+                icon: Icons.wifi_tethering_rounded,
+                children: [
+                  _buildInfoRow(
+                    'Status',
+                    connectionState.isConnected ? 'Connected' : 'Disconnected',
+                    cardContentColor,
+                    connectionState.isConnected
+                        ? Icons.check_circle
+                        : Icons.cancel,
+                    connectionState.isConnected ? Colors.green : Colors.red,
+                  ),
+                  _buildInfoRow(
+                    'Last Detection',
+                    lastSyncedText,
+                    cardContentColor,
+                    Icons.sync_rounded,
+                    Colors.cyanAccent,
+                  ),
+                  _buildInfoRow(
+                    'Signal Strength',
+                    'Excellent',
+                    cardContentColor,
+                    Icons.signal_cellular_alt_rounded,
+                  ),
+                ],
               ),
-              _buildInfoRow('Last Synced', '1 min ago', cardContentColor,
-                  Icons.sync_rounded),
-              _buildInfoRow('Signal Strength', 'Excellent', cardContentColor,
-                  Icons.signal_cellular_alt_rounded),
+              const SizedBox(height: 20),
+              _buildInfoCard(
+                isGuardianMode: isGuardianMode,
+                cardColor: cardColor,
+                titleColor: cardTitleColor,
+                contentColor: cardContentColor,
+                title: 'TANAW Glass Battery',
+                icon: Icons.battery_charging_full_rounded,
+                children: [
+                  _buildInfoRow(
+                    'Level',
+                    '80%',
+                    cardContentColor,
+                    Icons.battery_6_bar_rounded,
+                    Colors.teal,
+                  ),
+                  _buildInfoRow(
+                    'Status',
+                    'Charging',
+                    cardContentColor,
+                    Icons.power_rounded,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              _buildInfoCard(
+                isGuardianMode: isGuardianMode,
+                cardColor: cardColor,
+                titleColor: cardTitleColor,
+                contentColor: cardContentColor,
+                title: 'User Information',
+                icon: Icons.person_pin_circle_rounded,
+                children: [
+                  _buildInfoRow(
+                    'Current Mode',
+                    isGuardianMode ? 'Guardian' : 'Normal',
+                    cardContentColor,
+                    isGuardianMode
+                        ? Icons.security_rounded
+                        : Icons.person_outline_rounded,
+                    isGuardianMode ? Colors.blueAccent : Colors.grey,
+                  ),
+                  _buildInfoRow(
+                    'Last Known Location',
+                    lastKnownLocation,
+                    cardContentColor,
+                    Icons.location_on_outlined,
+                    Colors.lightBlueAccent,
+                  ),
+                ],
+              ),
             ],
-          ),
-          const SizedBox(height: 20),
-          _buildInfoCard(
-            isGuardianMode: isGuardianMode,
-            cardColor: cardColor,
-            titleColor: cardTitleColor,
-            contentColor: cardContentColor,
-            title: 'TANAW Glass Battery',
-            icon: Icons.battery_charging_full_rounded,
-            children: [
-              _buildInfoRow('Level', '80%', cardContentColor,
-                  Icons.battery_6_bar_rounded, Colors.teal),
-              _buildInfoRow(
-                  'Status', 'Charging', cardContentColor, Icons.power_rounded),
-            ],
-          ),
-          const SizedBox(height: 20),
-          _buildInfoCard(
-            isGuardianMode: isGuardianMode,
-            cardColor: cardColor,
-            titleColor: cardTitleColor,
-            contentColor: cardContentColor,
-            title: 'User Information',
-            icon: Icons.person_pin_circle_rounded,
-            children: [
-              _buildInfoRow(
-                  'Current Mode',
-                  isGuardianMode ? 'Guardian' : 'Normal',
-                  cardContentColor,
-                  isGuardianMode
-                      ? Icons.security_rounded
-                      : Icons.person_outline_rounded,
-                  isGuardianMode ? Colors.blueAccent : Colors.grey),
-              _buildInfoRow('Last Known Location', 'Sto. Tomas, Batangas',
-                  cardContentColor, Icons.location_on_outlined),
-            ],
-          ),
-        ],
+          );
+        },
       ),
       bottomNavigationBar: AnimatedBottomNavBar(
         selectedIndex: _selectedIndex,
         onItemTapped: _onItemTapped,
       ),
     );
+  }
+
+  String _formatTimeAgo(DateTime dateTime) {
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    final minutes = difference.inMinutes;
+    final hours = difference.inHours;
+    final days = difference.inDays;
+
+    if (days > 0) {
+      return '$days ${days == 1 ? 'day' : 'days'} ago';
+    } else if (hours > 0) {
+      return '$hours ${hours == 1 ? 'hour' : 'hours'} ago';
+    } else if (minutes > 0) {
+      return '$minutes ${minutes == 1 ? 'min' : 'mins'} ago';
+    } else {
+      return 'Just now';
+    }
   }
 
   Widget _buildInfoCard({
@@ -152,10 +227,14 @@ class StatusScreenState extends State<StatusScreen> {
     return Card(
       color: cardColor,
       elevation: isGuardianMode ? 4 : 2,
-      shadowColor: isGuardianMode ? Colors.black.withAlpha(51) : Colors.grey.withAlpha(100),
+      shadowColor: isGuardianMode
+          ? Colors.black.withAlpha(51)
+          : Colors.grey.withAlpha(100),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(20),
-        side: isGuardianMode ? BorderSide.none : BorderSide(color: Colors.grey.shade300, width: 1),
+        side: isGuardianMode
+            ? BorderSide.none
+            : BorderSide(color: Colors.grey.shade300, width: 1),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
@@ -169,9 +248,10 @@ class StatusScreenState extends State<StatusScreen> {
                 Text(
                   title,
                   style: TextStyle(
-                      fontSize: 19,
-                      fontWeight: FontWeight.bold,
-                      color: titleColor),
+                    fontSize: 19,
+                    fontWeight: FontWeight.bold,
+                    color: titleColor,
+                  ),
                 ),
               ],
             ),
@@ -183,8 +263,13 @@ class StatusScreenState extends State<StatusScreen> {
     );
   }
 
-  Widget _buildInfoRow(String title, String value, Color contentColor,
-      [IconData? icon, Color? iconColor]) {
+  Widget _buildInfoRow(
+    String title,
+    String value,
+    Color contentColor, [
+    IconData? icon,
+    Color? iconColor,
+  ]) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -203,8 +288,11 @@ class StatusScreenState extends State<StatusScreen> {
                 if (icon != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 1.0),
-                    child: Icon(icon,
-                        size: 20, color: iconColor ?? contentColor),
+                    child: Icon(
+                      icon,
+                      size: 20,
+                      color: iconColor ?? contentColor,
+                    ),
                   ),
                 if (icon != null) const SizedBox(width: 8),
                 Expanded(
@@ -225,4 +313,4 @@ class StatusScreenState extends State<StatusScreen> {
       ),
     );
   }
-} 
+}

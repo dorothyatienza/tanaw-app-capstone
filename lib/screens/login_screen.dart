@@ -17,6 +17,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   bool isLoading = false;
+  bool isEmailInvalid = false;
+  bool isPasswordInvalid = false;
 
   @override
   void dispose() {
@@ -94,6 +96,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       label: 'Email Address',
                       icon: Icons.email_outlined,
                       controller: emailController,
+                      isInvalid: isEmailInvalid,
+                      onChanged: (_) {
+                        if (isEmailInvalid) {
+                          setState(() {
+                            isEmailInvalid = false;
+                          });
+                        }
+                      },
                     ),
                     const SizedBox(height: 20),
                     _buildTextField(
@@ -101,6 +111,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       icon: Icons.lock_outline,
                       obscureText: true,
                       controller: passwordController,
+                      isInvalid: isPasswordInvalid,
+                      onChanged: (_) {
+                        if (isPasswordInvalid) {
+                          setState(() {
+                            isPasswordInvalid = false;
+                          });
+                        }
+                      },
                     ),
                     const SizedBox(height: 30),
                     ElevatedButton(
@@ -111,6 +129,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               final email = emailController.text.trim();
                               final password = passwordController.text;
                               if (email.isEmpty || password.isEmpty) {
+                                setState(() {
+                                  isEmailInvalid = email.isEmpty;
+                                  isPasswordInvalid = password.isEmpty;
+                                });
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text(
@@ -122,6 +144,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               }
                               setState(() {
                                 isLoading = true;
+                                isEmailInvalid = false;
+                                isPasswordInvalid = false;
                               });
                               try {
                                 await AuthService().signIn(email, password);
@@ -133,6 +157,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 );
                               } catch (e) {
+                                setState(() {
+                                  isEmailInvalid = true;
+                                  isPasswordInvalid = true;
+                                });
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text('Invalid email or password.'),
@@ -288,6 +316,8 @@ class _LoginScreenState extends State<LoginScreen> {
     required IconData icon,
     bool obscureText = false,
     TextEditingController? controller,
+    bool isInvalid = false,
+    ValueChanged<String>? onChanged,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -304,13 +334,31 @@ class _LoginScreenState extends State<LoginScreen> {
         TextField(
           controller: controller,
           obscureText: obscureText,
+          onChanged: onChanged,
           decoration: InputDecoration(
             prefixIcon: Icon(icon, color: const Color(0xFF153A5B)),
             filled: true,
             fillColor: const Color(0xFFF3F6F8),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: BorderSide.none,
+              borderSide: BorderSide(
+                color: isInvalid ? Colors.red : Colors.transparent,
+                width: 1.5,
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: isInvalid ? Colors.red : Colors.transparent,
+                width: 1.5,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide(
+                color: isInvalid ? Colors.red : const Color(0xFF153A5B),
+                width: 1.5,
+              ),
             ),
             contentPadding: const EdgeInsets.symmetric(
               vertical: 16,

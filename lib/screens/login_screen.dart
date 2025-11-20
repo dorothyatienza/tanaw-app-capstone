@@ -17,8 +17,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
   bool isLoading = false;
-  bool isEmailInvalid = false;
-  bool isPasswordInvalid = false;
+  String? emailError;
+  String? passwordError;
 
   @override
   void dispose() {
@@ -96,11 +96,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       label: 'Email Address',
                       icon: Icons.email_outlined,
                       controller: emailController,
-                      isInvalid: isEmailInvalid,
+                      errorText: emailError,
                       onChanged: (_) {
-                        if (isEmailInvalid) {
+                        if (emailError != null) {
                           setState(() {
-                            isEmailInvalid = false;
+                            emailError = null;
                           });
                         }
                       },
@@ -111,11 +111,11 @@ class _LoginScreenState extends State<LoginScreen> {
                       icon: Icons.lock_outline,
                       obscureText: true,
                       controller: passwordController,
-                      isInvalid: isPasswordInvalid,
+                      errorText: passwordError,
                       onChanged: (_) {
-                        if (isPasswordInvalid) {
+                        if (passwordError != null) {
                           setState(() {
-                            isPasswordInvalid = false;
+                            passwordError = null;
                           });
                         }
                       },
@@ -130,8 +130,12 @@ class _LoginScreenState extends State<LoginScreen> {
                               final password = passwordController.text;
                               if (email.isEmpty || password.isEmpty) {
                                 setState(() {
-                                  isEmailInvalid = email.isEmpty;
-                                  isPasswordInvalid = password.isEmpty;
+                                  emailError = email.isEmpty
+                                      ? 'Email is required.'
+                                      : null;
+                                  passwordError = password.isEmpty
+                                      ? 'Password is required.'
+                                      : null;
                                 });
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
@@ -144,8 +148,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               }
                               setState(() {
                                 isLoading = true;
-                                isEmailInvalid = false;
-                                isPasswordInvalid = false;
+                                emailError = null;
+                                passwordError = null;
                               });
                               try {
                                 await AuthService().signIn(email, password);
@@ -158,8 +162,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 );
                               } catch (e) {
                                 setState(() {
-                                  isEmailInvalid = true;
-                                  isPasswordInvalid = true;
+                                  emailError = 'Please check your email.';
+                                  passwordError = 'Please check your password.';
                                 });
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
@@ -316,9 +320,10 @@ class _LoginScreenState extends State<LoginScreen> {
     required IconData icon,
     bool obscureText = false,
     TextEditingController? controller,
-    bool isInvalid = false,
+    String? errorText,
     ValueChanged<String>? onChanged,
   }) {
+    final isInvalid = errorText != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -366,6 +371,13 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
+        if (errorText != null) ...[
+          const SizedBox(height: 6),
+          Text(
+            errorText,
+            style: const TextStyle(color: Colors.red, fontSize: 13),
+          ),
+        ],
       ],
     );
   }

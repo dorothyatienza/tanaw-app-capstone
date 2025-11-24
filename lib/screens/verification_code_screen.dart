@@ -1,7 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'dart:async';
-import 'new_password_screen.dart';
+
+import 'login_screen.dart';
 
 class VerificationCodeScreen extends StatefulWidget {
   final String email;
@@ -13,73 +14,7 @@ class VerificationCodeScreen extends StatefulWidget {
 }
 
 class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
-  final List<TextEditingController> _controllers =
-      List.generate(4, (index) => TextEditingController());
-  final List<FocusNode> _focusNodes =
-      List.generate(4, (index) => FocusNode());
-  Timer? _timer;
-  int _countdown = 60;
-  bool _canResend = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _startCountdown();
-  }
-
-  @override
-  void dispose() {
-    for (var controller in _controllers) {
-      controller.dispose();
-    }
-    for (var focusNode in _focusNodes) {
-      focusNode.dispose();
-    }
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  void _startCountdown() {
-    _canResend = false;
-    _countdown = 60;
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        if (_countdown > 0) {
-          _countdown--;
-        } else {
-          _canResend = true;
-          timer.cancel();
-        }
-      });
-    });
-  }
-
-  void _resendCode() {
-    if (_canResend) {
-      HapticFeedback.lightImpact();
-      _startCountdown();
-      // Here you would implement the actual resend logic
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Verification code resent!'),
-          backgroundColor: Color(0xFF153A5B),
-        ),
-      );
-    }
-  }
-
-  void _verifyCode() {
-    String code = _controllers.map((controller) => controller.text).join();
-    if (code.length == 4) {
-      HapticFeedback.lightImpact();
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const NewPasswordScreen(),
-        ),
-      );
-    }
-  }
+  bool _isResending = false;
 
   @override
   Widget build(BuildContext context) {
@@ -111,7 +46,7 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
               ),
               const SizedBox(height: 40),
               const Text(
-                'Verify Your Email',
+                'Check Your Email',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 28,
@@ -120,69 +55,30 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              RichText(
+              const Text(
+                'We sent a password reset link to:',
                 textAlign: TextAlign.center,
-                text: TextSpan(
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey.shade600,
-                  ),
-                  children: [
-                    const TextSpan(
-                        text: 'Please enter the 4-digit code sent to '),
-                    TextSpan(
-                      text: widget.email,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF153A5B),
-                      ),
-                    ),
-                  ],
+                style: TextStyle(fontSize: 16, color: Colors.black54),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                widget.email,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF153A5B),
                 ),
               ),
-              const SizedBox(height: 40),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children:
-                    List.generate(4, (index) => _buildCodeInput(index)),
+              const SizedBox(height: 24),
+              Text(
+                'Open the link in your email to create a new password in your browser.',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 15, color: Colors.grey.shade600),
               ),
-              const SizedBox(height: 30),
-              if (!_canResend)
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Resend code in ',
-                      style: TextStyle(
-                        color: Colors.grey.shade600,
-                        fontSize: 14,
-                      ),
-                    ),
-                    Text(
-                      '${_countdown.toString().padLeft(2, '0')}s',
-                      style: const TextStyle(
-                        color: Color(0xFF153A5B),
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              if (_canResend)
-                TextButton(
-                  onPressed: _resendCode,
-                  child: const Text(
-                    'Resend Code',
-                    style: TextStyle(
-                      color: Color(0xFF153A5B),
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 48),
               ElevatedButton(
-                onPressed: _verifyCode,
+                onPressed: _isResending ? null : _resendEmail,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF153A5B),
                   minimumSize: const Size.fromHeight(55),
@@ -191,12 +87,33 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
                   ),
                   elevation: 2,
                 ),
+                child: _isResending
+                    ? const SizedBox(
+                        height: 24,
+                        width: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        'Resend Email',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: _backToLogin,
                 child: const Text(
-                  'Verify',
+                  'Back to Login',
                   style: TextStyle(
-                    fontSize: 18,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF153A5B),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
@@ -207,46 +124,53 @@ class _VerificationCodeScreenState extends State<VerificationCodeScreen> {
     );
   }
 
-  Widget _buildCodeInput(int index) {
-    return SizedBox(
-      width: 60,
-      height: 60,
-      child: TextField(
-        controller: _controllers[index],
-        focusNode: _focusNodes[index],
-        textAlign: TextAlign.center,
-        keyboardType: TextInputType.number,
-        maxLength: 1,
-        style: const TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF153A5B),
-        ),
-        decoration: InputDecoration(
-          counterText: '',
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: Colors.grey.shade300, width: 1.5),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF153A5B), width: 2),
-          ),
-        ),
-        onChanged: (value) {
-          if (value.isNotEmpty && index < 3) {
-            _focusNodes[index + 1].requestFocus();
-          } else if (value.isEmpty && index > 0) {
-            _focusNodes[index - 1].requestFocus();
-          }
+  Future<void> _resendEmail() async {
+    HapticFeedback.lightImpact();
 
-          if (_controllers.every((controller) => controller.text.isNotEmpty)) {
-            _verifyCode();
-          }
-        },
-        inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
-        ],
+    setState(() {
+      _isResending = true;
+    });
+
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(
+        email: widget.email.trim(),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'If this email is registered, a new link is on the way.',
+          ),
+        ),
+      );
+    } on FirebaseAuthException {
+      _showNeutralError();
+    } catch (_) {
+      _showNeutralError();
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isResending = false;
+        });
+      }
+    }
+  }
+
+  void _backToLogin() {
+    HapticFeedback.lightImpact();
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      (route) => false,
+    );
+  }
+
+  void _showNeutralError() {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'We couldn\'t process your request. Please try again shortly.',
+        ),
       ),
     );
   }
